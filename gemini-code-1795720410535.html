@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Passages Speaking Mixer Studio — Multi-Class Conversation Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <style>
+    @keyframes pulseBorder {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45); }
+      50% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+    }
+    .spotlight-card {
+      border-color: #34d399 !important;
+      background: linear-gradient(145deg, rgba(6, 78, 59, 0.35), rgba(9, 9, 11, 0.95)) !important;
+      animation: pulseBorder 2s infinite;
+      transform: translateY(-2px);
+    }
+    .stage-mode .role-text {
+      font-size: 1.125rem;
+      line-height: 1.65;
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #09090b; }
+    ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+  </style>
+</head>
+<body class="bg-black text-zinc-100 min-h-screen flex flex-col antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
+
+  <!-- Top Header -->
+  <header class="bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800 sticky top-0 z-30 shadow-lg shadow-black/40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-950">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white leading-none">
+            Passages <span class="text-emerald-400">Speaking Mixer</span>
+          </h1>
+          <p class="text-xs text-zinc-400 hidden sm:block mt-0.5">12-Format Multi-Class Conversation Generator & Live Turn Stage</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <!-- Import Resource Bank JSON -->
+        <label class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-zinc-900 text-zinc-300 border border-zinc-700 hover:bg-zinc-800 transition cursor-pointer"
+          title="Optional: Import Resource Bank JSON from Passages Live Studio">
+          <span>⬆️ Sync Bank</span>
+          <input type="file" accept=".json" onchange="importResourceBank(event)" class="hidden" />
+        </label>
+
+        <!-- Stage / Screen-Share Toggle -->
+        <button id="stageModeBtn" onclick="toggleStageMode()"
+          class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-zinc-900 text-zinc-200 border border-zinc-700 hover:bg-zinc-800 transition cursor-pointer">
+          <span>🖥️</span>
+          <span id="stageModeLabel" class="hidden sm:inline">Screen-Share Stage</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Toast Banner -->
+    <div id="toastBanner" class="hidden fixed bottom-5 right-5 z-50 bg-zinc-900 text-white border border-zinc-700 px-4 py-3 rounded-xl shadow-2xl text-sm font-medium flex items-center gap-2.5">
+      <span id="toastIcon">ℹ️</span>
+      <span id="toastMessage">Notification</span>
+    </div>
+
+    <!-- STEP 1: SESSION SETUP (Hidden in Screen-Share Stage Mode) -->
+    <section id="setupPanel" class="bg-zinc-950 rounded-2xl border border-zinc-800 shadow-lg p-5 sm:p-6 space-y-5">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-zinc-800/80">
+        <div>
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full mb-1">
+            Step 1 · Single-Book Class Mix
+          </span>
+          <h2 class="text-lg font-bold text-white">Assign Active Student Classes (Max 6 · Same Book Only)</h2>
+        </div>
+
+        <!-- Book Switcher -->
+        <div class="inline-flex p-1 bg-zinc-900 rounded-xl border border-zinc-800 self-start">
+          <button id="btnBook1" onclick="setBook(1)"
+            class="px-4 py-2 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white shadow-xs cursor-pointer">
+            Passages 1 <span class="text-xs font-normal opacity-90">(1–84)</span>
+          </button>
+          <button id="btnBook2" onclick="setBook(2)"
+            class="px-4 py-2 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-white cursor-pointer">
+            Passages 2 <span class="text-xs font-normal opacity-75">(1–72)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- Quick Entry -->
+        <div class="lg:col-span-6 space-y-2">
+          <label for="quickClassInput" class="block text-xs font-bold uppercase tracking-wider text-zinc-400">
+            Quick Class Numbers (Commas or spaces)
+          </label>
+          <div class="flex gap-2">
+            <input id="quickClassInput" type="text" placeholder="e.g. 2, 19, 33, 54, 72"
+              onkeydown="if(event.key==='Enter') applyQuickInput()"
+              class="flex-1 rounded-xl bg-zinc-900 border border-zinc-700 px-4 py-2.5 text-sm font-mono font-medium text-white placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <button onclick="applyQuickInput()"
+              class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition cursor-pointer">
+              Load
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <span class="text-xs text-zinc-500 font-medium">Presets:</span>
+            <button onclick="loadDemo(1)" class="text-xs font-semibold text-indigo-300 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 px-2.5 py-1 rounded-lg transition cursor-pointer">
+              P1 Mix (2, 19, 33, 54, 72)
+            </button>
+            <button onclick="loadDemo(2)" class="text-xs font-semibold text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 px-2.5 py-1 rounded-lg transition cursor-pointer">
+              P2 Mix (5, 20, 35, 53, 68)
+            </button>
+            <button onclick="clearAllSlots()" class="text-xs font-semibold text-zinc-400 hover:text-rose-400 px-2 py-1 rounded-lg transition cursor-pointer">
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- 6 Student Slots -->
+        <div class="lg:col-span-6 space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400">
+              Student Slots (1–6)
+            </label>
+            <span id="maxRangeHint" class="text-xs font-medium text-zinc-500">Valid range: 1 – 84</span>
+          </div>
+          <div id="studentSlotsGrid" class="grid grid-cols-3 sm:grid-cols-6 gap-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EMPTY STATE -->
+    <div id="emptyState" class="hidden bg-zinc-950 rounded-2xl border-2 border-dashed border-zinc-800 p-12 text-center space-y-3">
+      <div class="text-3xl">🎙️</div>
+      <h3 class="text-lg font-bold text-white">No Active Classes Loaded</h3>
+      <p class="text-sm text-zinc-400 max-w-md mx-auto">
+        Enter up to 6 class numbers above to generate a custom multi-class speaking challenge.
+      </p>
+      <button onclick="loadDemo(1)" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition cursor-pointer">
+        Load Sample Passages 1 Mix
+      </button>
+    </div>
+
+    <!-- STEP 2: SPEAKING MIXER STAGE -->
+    <section id="mixerWorkspace" class="space-y-6">
+
+      <!-- Control Deck: Vibe Filter, 12 Format Selector, Randomize & Timer -->
+      <div class="bg-gradient-to-br from-zinc-950 via-indigo-950/40 to-zinc-950 rounded-3xl border border-indigo-500/30 p-5 sm:p-6 shadow-2xl space-y-5">
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-5 pb-5 border-b border-zinc-800">
+          <!-- Format Picker & Shuffle -->
+          <div class="space-y-3 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-300 mr-1">Vibe Filter:</span>
+              <button onclick="setCategoryFilter('all')" data-cat="all" class="cat-btn px-3 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white cursor-pointer">All 12 Formats</button>
+              <button onclick="setCategoryFilter('rapid')" data-cat="rapid" class="cat-btn px-3 py-1 rounded-lg text-xs font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 cursor-pointer">⚡ Rapid-Fire (4)</button>
+              <button onclick="setCategoryFilter('collab')" data-cat="collab" class="cat-btn px-3 py-1 rounded-lg text-xs font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 cursor-pointer">🧩 Problem-Solving (4)</button>
+              <button onclick="setCategoryFilter('roleplay')" data-cat="roleplay" class="cat-btn px-3 py-1 rounded-lg text-xs font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 cursor-pointer">🎭 Role-Play & Story (4)</button>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-2.5">
+              <select id="formatSelect" onchange="selectFormatById(this.value)"
+                class="flex-1 rounded-xl bg-zinc-900 border border-zinc-700 px-3.5 py-2.5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <!-- Populated dynamically -->
+              </select>
+
+              <button onclick="randomizeAll()"
+                class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-zinc-950 text-sm font-extrabold shadow-md transition cursor-pointer shrink-0">
+                <span>🎲</span> Surprise Mix
+              </button>
+
+              <button onclick="rerollScenarioOnly()"
+                class="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-sm font-bold transition cursor-pointer shrink-0"
+                title="Keep the same format, switch the topic angle & twist">
+                <span>🔄</span> New Angle
+              </button>
+            </div>
+          </div>
+
+          <!-- Configurable Countdown Timer -->
+          <div class="bg-black/70 border border-zinc-800 rounded-2xl p-4 flex flex-col gap-2.5 min-w-[270px]">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div id="timerDisplay" class="font-mono text-3xl font-extrabold tracking-tight text-white">05:00</div>
+                <div id="timerStatus" class="text-[11px] uppercase tracking-wider text-emerald-400 font-bold">Ready</div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button id="timerStartBtn" onclick="toggleTimer()"
+                  class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-extrabold text-xs sm:text-sm transition cursor-pointer">
+                  ▶ Start
+                </button>
+                <button onclick="resetTimer()"
+                  class="px-2.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs sm:text-sm transition cursor-pointer">
+                  ↺
+                </button>
+              </div>
+            </div>
+            <!-- Duration Pills + Progress -->
+            <div class="flex items-center justify-between gap-1 text-[11px]">
+              <span class="text-zinc-500 font-semibold">Time:</span>
+              <div class="flex gap-1">
+                <button onclick="setDuration(180)" class="dur-btn px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 cursor-pointer" data-sec="180">3m</button>
+                <button onclick="setDuration(300)" class="dur-btn px-2 py-0.5 rounded bg-indigo-600 text-white font-bold cursor-pointer" data-sec="300">5m</button>
+                <button onclick="setDuration(480)" class="dur-btn px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 cursor-pointer" data-sec="480">8m</button>
+                <button onclick="setDuration(600)" class="dur-btn px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 cursor-pointer" data-sec="600">10m</button>
+              </div>
+            </div>
+            <div class="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+              <div id="timerProgressBar" class="h-full bg-emerald-400 transition-all duration-500 rounded-full" style="width: 100%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Turn Spotlight & Mid-Round Twist Toolbar -->
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex flex-wrap items-center gap-2">
+            <button onclick="spinNextSpeaker('random')"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-extrabold transition cursor-pointer">
+              <span>🎯</span> Random Speaker Spotlight
+            </button>
+            <button onclick="spinNextSpeaker('next')"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-bold transition cursor-pointer">
+              <span>⏭️</span> Next Speaker in Order
+            </button>
+            <button onclick="clearSpotlight()"
+              class="px-2.5 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer">
+              Clear Spotlight
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button id="revealTwistBtn" onclick="toggleMidRoundTwist()"
+              class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40 text-xs font-extrabold transition cursor-pointer">
+              <span>⚡</span> <span id="twistBtnLabel">Reveal Mid-Round Twist</span>
+            </button>
+            <button onclick="rerollTwist()"
+              class="px-2.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-700 text-xs font-bold cursor-pointer"
+              title="Pick a different twist">
+              🎲 Twist
+            </button>
+          </div>
+        </div>
+
+        <!-- Hidden/Revealed Mid-Round Twist Banner -->
+        <div id="twistBanner" class="hidden bg-rose-950/50 border border-rose-500/50 rounded-2xl p-4 flex items-start gap-3">
+          <span class="text-xl">⚡</span>
+          <div class="space-y-0.5">
+            <div class="text-xs font-extrabold uppercase tracking-wider text-rose-300">Mid-Round Twist / Constraint Unlocked</div>
+            <p id="twistText" class="text-sm sm:text-base font-bold text-white"></p>
+          </div>
+        </div>
+
+        <!-- Generated Activity Stage -->
+        <div id="activityStageContainer" class="space-y-6">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <footer class="bg-zinc-950 border-t border-zinc-900 py-4 mt-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500">
+      <div>Passages Speaking Mixer Studio · 12 Formats · Passages 1 (1–84) & Passages 2 (1–72)</div>
+      <div>Click grammar badges on student cards during live class to track production</div>
+    </div>
+  </footer>
+
+  <script>
+    // =========================================================================
+    // 1. STATE & SYLLABUS METADATA (PASSAGES 1 & 2)
+    // =========================================================================
+    const state = {
+      book: 1,
+      slots: [2, 19, 33, 54, 72, null],
+      categoryFilter: "all",
+      formatId: "hotseat",
+      scenarioSeed: 0,
+      twistSeed: 0,
+      twistRevealed: false,
+      spotlightStudentIdx: null,
+      completedChecks: {}, // key: "studentIdx:type"
+      stageMode: false,
+      durationSeconds: 300,
+      timerSeconds: 300,
+      timerRunning: false,
+      timerInterval: null,
+      customBank: {}
+    };
+
+    const P1_UNITS = {
+      1: { title: "Friends and Family", gA: "Verbs + gerunds", gB: "Noun clauses after be", v: ["easygoing", "temperamental", "close-knit", "outgrow", "turning point"] },
+      2: { title: "Mistakes and Mysteries", gA: "Past modals (should have / must have)", gB: "Modals of certainty & advice", v: ["aggravate a problem", "jump to conclusions", "plausible", "eyewitness", "hindsight"] },
+      3: { title: "Exploring New Cities", gA: "Defining & non-defining relative clauses", gB: "Order of modifiers & contrast connectors", v: ["walkable", "cosmopolitan", "laid-back", "commute", "off the beaten path"] },
+      4: { title: "Early Birds and Night Owls", gA: "Reduced time clauses (Before/While/After -ing)", gB: "Clauses of reason & condition (unless/provided that)", v: ["circadian rhythm", "burnout", "unwind", "subconscious", "productive"] },
+      5: { title: "Communication", gA: "Infinitive & gerund phrases", gB: "Reported speech", v: ["break the ice", "small talk", "faux pas", "overhear", "courteous"] },
+      6: { title: "What's the Real Story?", gA: "Present perfect vs. simple past", gB: "Present perfect vs. present perfect continuous", v: ["eyewitness", "viral", "blunder", "verify", "laugh it off"] },
+      7: { title: "The Information Age", gA: "Passive (present continuous, perfect, future)", gB: "Negative & tag questions for opinions", v: ["algorithm", "automation", "wearable tech", "screen time", "privacy"] },
+      8: { title: "Putting the Mind to Work", gA: "Reduced relative clauses (-ing / -ed)", gB: "Sentence modifiers (', which...')", v: ["resourceful", "patent", "breakthrough", "think outside the box", "prototype"] },
+      9: { title: "Generally Speaking", gA: "Contrast & exception (unlike, except for, while)", gB: "Past habitual (used to & would)", v: ["stereotype", "etiquette", "punctuality", "methodical", "trial and error"] },
+      10: { title: "The Art of Complaining", gA: "Relative & noun clauses (What bothers me...)", gB: "Indirect questions (Could you tell me...)", v: ["pet peeve", "defective", "warranty", "diplomatic", "escalate"] },
+      11: { title: "Values", gA: "Unreal conditional (unless, only if, even if)", gB: "Wishes and regrets (wish + had)", v: ["integrity", "conscience", "compassion", "altruism", "ethical dilemma"] },
+      12: { title: "Moving Around", gA: "Future perfect & future perfect continuous", gB: "Mixed conditionals", v: ["relocate", "culture shock", "detour", "serendipity", "adaptable"] }
+    };
+
+    const P2_UNITS = {
+      1: { title: "Relationships", gA: "Separable & inseparable phrasal verbs", gB: "Passive gerunds & infinitives", v: ["hit it off", "bond over", "see eye to eye", "drift apart", "take for granted"] },
+      2: { title: "Clothes and Appearance", gA: "Passive reporting & verb patterns", gB: "Cleft sentences (What... / It is... that)", v: ["capsule wardrobe", "dress code", "chic", "approachable", "demeanor"] },
+      3: { title: "Science and Technology", gA: "Definite, indefinite & zero articles", gB: "Mixed hypothetical conditionals", v: ["paradigm", "simulation", "technophile", "double-edged sword", "scalability"] },
+      4: { title: "Superstitions and Beliefs", gA: "Passive infinitive reporting (is believed to...)", gB: "It is said/claimed/shown that...", v: ["folklore", "ward off", "omen", "hoax", "debunk"] },
+      5: { title: "Movies and Television", gA: "Sentence adverbs (arguably, apparently, frankly)", gB: "So... that & such... that", v: ["slow-burn", "cinematography", "binge-worthy", "anthology", "cliffhanger"] },
+      6: { title: "Musicians and Music", gA: "Double comparatives (The more..., the more...)", gB: "Will & would for habits and willingness", v: ["arrangement", "stripped-back", "improvisation", "grassroots", "resilience"] },
+      7: { title: "Changing Times", gA: "Optional & required relative pronouns", gB: "As if, as though, as, the way", v: ["decisive/indecisive", "cope with change", "undergo a change", "adaptability", "turning point"] },
+      8: { title: "Consumer Culture", gA: "Direct & indirect object placement", gB: "Subjunctive verbs (insist/recommend that...)", v: ["buyer's remorse", "bargain hunter", "greenwashing", "transparency", "sponsorship"] },
+      9: { title: "Nature", gA: "Whenever & wherever vs. when & where", gB: "Noun clauses with whoever & whatever", v: ["camouflage", "adaptation", "a drop in the ocean", "tip of the iceberg", "stewardship"] },
+      10: { title: "Language", gA: "Overview of passives & discourse markers", gB: "Subject-verb agreement with quantifiers", v: ["to begin with", "having said that", "in a nutshell", "coin a phrase", "nuance"] },
+      11: { title: "Exceptional People", gA: "Body-related compound adjectives", gB: "Three-word phrasal verbs", v: ["level-headed", "warm-hearted", "sharp-witted", "step up", "stand up for"] },
+      12: { title: "Business Matters", gA: "Inversion after negative adverbs & 'work' prepositions", gB: "Adverb clauses (assuming, in case, whether or not)", v: ["work toward", "work on", "emotional intelligence", "psychological safety", "contingency"] }
+    };
+
+    const UNIT_HOOKS = {
+      "1:1": { topic: "clashing roommate & family habits", conflict: "moving in together with totally opposite personalities", item: "a family heirloom rulebook" },
+      "1:2": { topic: "an unexplained mystery or costly mistake", conflict: "figuring out who caused a major event mix-up", item: "a locked briefcase with no label" },
+      "1:3": { topic: "what makes a city livable vs. overrated", conflict: "choosing one city to relocate the whole team to", item: "a 24-hour metro pass" },
+      "1:4": { topic: "early birds vs. night owls under pressure", conflict: "designing a schedule that works for both extremes", item: "a smart sleep-tracking ring" },
+      "1:5": { topic: "overheard rumors & small-talk blunders", conflict: "repairing a misunderstanding caused by a group-chat message", item: "a noise-canceling headset" },
+      "1:6": { topic: "viral news vs. embarrassing real-life stories", conflict: "deciding whether to publish an unverified viral scoop", item: "an eyewitness smartphone video" },
+      "1:7": { topic: "smart tech convenience vs. digital burnout", conflict: "whether to ban smartphones and AI tools for a 7-day retreat", item: "an offline analog watch" },
+      "1:8": { topic: "everyday ingenuity & accidental inventions", conflict: "pitching a low-cost invention built from household objects", item: "a modified kitchen waffle iron" },
+      "1:9": { topic: "cultural norms & old-school vs. modern habits", conflict: "blending two completely different cultural traditions at one event", item: "a handwritten etiquette guide" },
+      "1:10": { topic: "diplomatic complaining & customer recovery", conflict: "negotiating compensation after a ruined VIP reservation", item: "a non-refundable voucher" },
+      "1:11": { topic: "finders keepers & everyday ethical dilemmas", conflict: "deciding what to do with an unclaimed envelope of cash", item: "a lost wallet with no ID" },
+      "1:12": { topic: "life-changing travel detours & future milestones", conflict: "deciding within 24 hours whether to accept a transfer abroad", item: "a one-way open ticket" },
+      "2:1": { topic: "maintaining adult friendships across distances", conflict: "reconnecting after drifting apart over an old argument", item: "a shared photo archive" },
+      "2:2": { topic: "first impressions, dress codes & personal style", conflict: "scrapping a corporate dress code for a high-stakes client pitch", item: "a minimalist capsule suitcase" },
+      "2:3": { topic: "technophiles vs. skeptics on AI & science", conflict: "funding one risky scientific breakthrough over safer projects", item: "an experimental diagnostic sensor" },
+      "2:4": { topic: "superstitions, athlete rituals & viral hoaxes", conflict: "launching a major event on Friday the 13th in a 'cursed' venue", item: "a lucky pre-game charm" },
+      "2:5": { topic: "binge-worthy TV pitches vs. overrated blockbusters", conflict: "greenlighting one original series on a tight studio budget", item: "a raw unscripted pilot script" },
+      "2:6": { topic: "music's effect on focus & breaking into the industry", conflict: "choosing between viral algorithms and stripped-back live artistry", item: "an acoustic demo recording" },
+      "2:7": { topic: "coping with sudden career or lifestyle pivots", conflict: "persuading a risk-averse team to embrace a 4-day workweek", item: "a 30-day habit tracker" },
+      "2:8": { topic: "ethical marketing, hidden fees & conscious shopping", conflict: "rebuilding trust after customers expose misleading ads", item: "a transparent price-breakdown tag" },
+      "2:9": { topic: "wildlife adaptations & grassroots eco-action", conflict: "saving an urban river corridor without shutting down local shops", item: "a native pollinator seed kit" },
+      "2:10": { topic: "slang evolution, discourse markers & clear persuasion", conflict: "crafting a 60-second pitch that wins over a skeptical audience", item: "a pocket idiom & metaphor deck" },
+      "2:11": { topic: "unsung community heroes & level-headed leadership", conflict: "selecting one everyday hero for a citywide impact grant", item: "a community emergency kit" },
+      "2:12": { topic: "psychological safety, teamwork & backup plans", conflict: "pivoting a startup when its main supplier cancels overnight", item: "a signed contingency contract" }
+    };
+
+    // =========================================================================
+    // 2. THE 12 SPEAKING FORMATS + ANTI-REPETITION TWIST ENGINE
+    // =========================================================================
+    const SPEAKING_FORMATS = [
+      {
+        id: "hotseat",
+        category: "rapid",
+        badge: "⚡ Rapid-Fire",
+        name: "1. Hot-Seat Question Chain",
+        tagline: "Fast 2-sentence turns + mandatory pass-the-mic question.",
+        setup: "Keep every turn sharp (max 2–3 sentences). Answer the question thrown at you using your class grammar, add your own angle about {topic}, and immediately fire a direct question to the next speaker.",
+        rules: ["Max 20 seconds per turn—no monologues!", "Must use your target grammar before passing the question.", "Keep bouncing until the timer hits zero."],
+        roleBuilder: (i, total, st, next, prev) =>
+          i === 0
+            ? `<strong>Kickoff Spark:</strong> Open with a punchy real-life take on <em>${st.unitTitle}</em> using <strong>${st.grammar}</strong>, then throw a direct question to <strong>${next}</strong>.`
+            : `<strong>Hot-Seat Responder:</strong> Answer <strong>${prev}</strong>'s question, weave in <strong>${st.grammar}</strong> (<em>${st.unitTitle}</em>), and pass a new question to <strong>${next}</strong>.`
+      },
+      {
+        id: "twotruths",
+        category: "rapid",
+        badge: "⚡ Rapid-Fire",
+        name: "2. Two Truths & A Grammar Lie",
+        tagline: "Spot the fabricated story through rapid cross-examination.",
+        setup: "Each speaker shares 3 quick statements connected to {topic}—two true experiences and ONE plausible lie—using their target grammar. The group gets 30 seconds to interrogate each speaker and vote on the lie!",
+        rules: ["All 3 statements must sound believable.", "Classmates ask rapid follow-up questions to catch contradictions.", "Reveal the lie before moving to the next speaker."],
+        roleBuilder: (i, total, st, next) =>
+          `<strong>Storyteller & Interrogator:</strong> Deliver 2 truths + 1 lie about <em>${st.unitTitle}</em> using <strong>${st.grammar}</strong>. When <strong>${next}</strong> goes, ask a sharp detail question to expose their lie.`
+      },
+      {
+        id: "pitchgrill",
+        category: "rapid",
+        badge: "⚡ Rapid-Fire",
+        name: "3. 60-Second Pitch & Grill",
+        tagline: "Elevator pitch followed by tough investor-style questions.",
+        setup: "We are solving a real challenge around {conflict}. Each speaker has 45 seconds to pitch a bold solution from their class perspective, followed by 30 seconds of tough questions from the rest of the room.",
+        rules: ["Pitchers must include their target grammar + 1 vocab word.", "Listeners must ask at least one skeptical 'What if...?' question.", "Vote on the strongest pitch at the end."],
+        roleBuilder: (i, total, st, next) =>
+          `<strong>Pitcher #${i + 1}:</strong> Pitch a creative solution tied to <em>${st.unitTitle}</em> using <strong>${st.grammar}</strong>, then grill <strong>${next}</strong> on their pitch's biggest flaw.`
+      },
+      {
+        id: "pingpong",
+        category: "rapid",
+        badge: "⚡ Rapid-Fire",
+        name: "4. Devil's Advocate Ping-Pong",
+        tagline: "Every speaker must politely counter the previous speaker.",
+        setup: "Friendly intellectual sparring on {topic}! Regardless of your personal opinion, you must challenge or complicate whatever the previous speaker just said before introducing your own point.",
+        rules: ["Start by acknowledging & countering the previous point.", "Use your class grammar to justify your counter-argument.", "No repeating an argument already used."],
+        roleBuilder: (i, total, st, next, prev) =>
+          i === 0
+            ? `<strong>Opening Provocateur:</strong> Take a bold, debatable stance on <em>${st.unitTitle}</em> using <strong>${st.grammar}</strong> for <strong>${next}</strong> to challenge.`
+            : `<strong>Devil's Advocate:</strong> Push back on <strong>${prev}</strong>'s point using <strong>${st.grammar}</strong> from <em>${st.unitTitle}</em>, setting up <strong>${next}</strong>.`
+      },
+      {
+        id: "crisis",
+        category: "collab",
+        badge: "🧩 Problem-Solving",
+        name: "5. Crisis Room Decision",
+        tagline: "High-stakes group diagnosis and unified action plan.",
+        setup: "Urgent situation: {conflict}. You are a cross-functional task force with limited time. Diagnose what went wrong, weigh competing risks, and agree on ONE concrete action plan before time expires.",
+        rules: ["First 90s: Diagnose causes & risks.", "Middle: Propose & debate fixes using class grammar.", "Final 60s: Reach a unanimous group decision."],
+        roleBuilder: (i, total, st) => {
+          const titles = ["Operations Lead", "Risk Analyst", "People & Culture Advisor", "Innovation Strategist", "Customer Advocate", "Ethics & Quality Officer"];
+          return `<strong>${titles[i % titles.length]}:</strong> Analyze the crisis through the lens of <em>${st.unitTitle}</em> using <strong>${st.grammar}</strong> and push for a practical safeguard.`;
+        }
+      },
+      {
+        id: "boardroom",
+        category: "collab",
+        badge: "🧩 Problem-Solving",
+        name: "6. Co-Design Lab / Campaign Pitch",
+        tagline: "Build one shared project where every class contributes a pillar.",
+        setup: "Your team is designing an innovative community program, app, or event centered on {topic}. Each member owns one essential pillar based on their unit and must integrate it into the final concept.",
+        rules: ["Build on your teammates' ideas ('Yes, and...').", "Every pillar must use its assigned target grammar.", "Give your finished project a catchy name before 00:00."],
+        roleBuilder: (i, total, st, next) =>
+          `<strong>Pillar Architect #${i + 1}:</strong> Design the <em>${st.unitTitle}</em> feature of our project using <strong>${st.grammar}</strong>, and ask <strong>${next}</strong> how their piece connects.`
+      },
+      {
+        id: "alibi",
+        category: "collab",
+        badge: "🧩 Problem-Solving",
+        name: "7. Mystery Alibi Interrogation",
+        tagline: "Detectives vs. Suspects testing timelines and details.",
+        setup: "Something unexpected happened during an event involving {conflict}! Half the group are Investigators; the other half are Witnesses/Suspects who must keep their stories consistent under questioning.",
+        rules: ["Investigators ask rapid timeline & motive questions.", "Suspects defend their alibi using their target grammar.", "Investigators vote on the biggest contradiction at the end."],
+        roleBuilder: (i, total, st) => {
+          const isDetective = i % 2 === 0;
+          return isDetective
+            ? `<span class="text-sky-300 font-bold">Lead Investigator:</span> Question the witnesses' timeline around <em>${st.unitTitle}</em> using <strong>${st.grammar}</strong> to spot inconsistencies.`
+            : `<span class="text-amber-300 font-bold">Key Witness:</span> Explain where you were and why things happened using <strong>${st.grammar}</strong> (<em>${st.unitTitle}</em>) without contradicting yourself.`;
+        }
+      },
+      {
+        id: "draft",
+        category: "collab",
+        badge: "🧩 Problem-Solving",
+        name: "8. Survival / Priority Draft (Keep Only 3)",
+        tagline: "Eliminate options until only the top 3 survive.",
+        setup: "Each student brings one essential tool, rule, or habit from their unit (starting with {item}) to solve {conflict}. The catch: the group can only keep THREE total—debate and vote to eliminate the rest!",
+        rules: ["Defend why your item/rule is indispensable using target grammar.", "Challenge at least one other item as unnecessary.", "Group must narrow the list to 3 survivors before time ends."],
+        roleBuilder: (i, total, st) =>
+          `<strong>Champion of <em>${st.item}</em>:</strong> Argue why your <em>${st.unitTitle}</em> resource/rule must survive the cut using <strong>${st.grammar}</strong>.`
+      },
+      {
+        id: "story",
+        category: "roleplay",
+        badge: "🎭 Role-Play & Story",
+        name: "9. Build the Story (Cliffhanger Relay)",
+        tagline: "Co-create one continuous narrative with escalating twists.",
+        setup: "Co-invent one realistic, entertaining story starting from: {conflict}. Each speaker adds 2–3 sentences using their target grammar and stops on a cliffhanger for the next person.",
+        rules: ["Never resolve the plot too early—keep raising the stakes!", "Incorporate your target grammar + 1 vocab word naturally.", "The final speaker delivers a memorable ending."],
+        roleBuilder: (i, total, st, next, prev) =>
+          i === 0
+            ? `<strong>Opening Narrator:</strong> Set the scene around <em>${st.unitTitle}</em> using <strong>${st.grammar}</strong> and leave a cliffhanger for <strong>${next}</strong>.`
+            : i === total - 1 && total > 1
+              ? `<strong>Finale Writer:</strong> React to <strong>${prev}</strong>'s twist using <strong>${st.grammar}</strong> and bring the story to a clever conclusion.`
+              : `<strong>Plot Twister:</strong> Pick up right where <strong>${prev}</strong> stopped, add an unexpected complication with <strong>${st.grammar}</strong>, and hand off to <strong>${next}</strong>.`
+      },
+      {
+        id: "podcast",
+        category: "roleplay",
+        badge: "🎭 Role-Play & Story",
+        name: "10. Live Podcast / Talk Show Panel",
+        tagline: "1 Host + Expert Guests debating real-world trends.",
+        setup: "Welcome to a live roundtable podcast exploring {topic}! Student 1 hosts and moderates, while the remaining speakers join as lively guest commentators with contrasting real-world perspectives.",
+        rules: ["Host keeps transitions snappy and invites quiet guests in.", "Guests react directly to each other—don't wait for the host every time.", "Everyone uses their class grammar + 1 target vocab item."],
+        roleBuilder: (i, total, st, next) =>
+          i === 0
+            ? `<strong>Podcast Host:</strong> Welcome listeners, introduce today's theme on <em>${st.unitTitle}</em> using <strong>${st.grammar}</strong>, and bring in <strong>${next}</strong>.`
+            : `<strong>Guest Expert (${st.unitTitle}):</strong> Share a vivid real-world example or hot take using <strong>${st.grammar}</strong> and respond to the panel.`
+      },
+      {
+        id: "escalation",
+        category: "roleplay",
+        badge: "🎭 Role-Play & Story",
+        name: "11. Diplomatic Escalation & Resolution",
+        tagline: "High-stakes complaint, negotiation, and service recovery.",
+        setup: "Something went seriously wrong involving {conflict}. Customers/Users demand a fair fix diplomatically, while Managers/Coordinators stay calm, investigate causes, and negotiate a win-win resolution.",
+        rules: ["Stay polite, firm, and persuasive—no yelling!", "Use your target grammar to explain causes, conditions, or requests.", "Close with a specific agreed-upon compensation or fix."],
+        roleBuilder: (i, total, st) => {
+          const isClient = i % 2 === 0;
+          return isClient
+            ? `<span class="text-rose-300 font-bold">Affected Client/Member:</span> Explain the issue tied to <em>${st.unitTitle}</em> using <strong>${st.grammar}</strong> and push for a fair solution.`
+            : `<span class="text-emerald-300 font-bold">Lead Coordinator:</span> De-escalate calmly using <strong>${st.grammar}</strong> (<em>${st.unitTitle}</em>) and propose a realistic recovery option.`;
+        }
+      },
+      {
+        id: "timetravel",
+        category: "roleplay",
+        badge: "🎭 Role-Play & Story",
+        name: "12. 10-Year Future Retrospective",
+        tagline: "Looking back from 2036 on today's habits and choices.",
+        setup: "Fast-forward ten years to 2036! You are reuniting to reflect on how {topic} evolved over the past decade—what worked, what backfired, and what you wish people had done differently back in 2026.",
+        rules: ["Speak from the perspective of 10 years in the future.", "Contrast 'back then' vs. 'by now' using your target grammar.", "End with one piece of advice for your 2026 selves."],
+        roleBuilder: (i, total, st, next) =>
+          `<strong>2036 Future Self:</strong> Reflect on how <em>${st.unitTitle}</em> changed over the decade using <strong>${st.grammar}</strong>, and ask <strong>${next}</strong> what they remember from 2026.`
+      }
+    ];
+
+    const MID_ROUND_TWISTS = [
+      "PLOT TWIST: Halfway through, a key decision-maker changes their mind—everyone must adapt their plan immediately!",
+      "GRAMMAR CONSTRAINT: For the remaining time, nobody is allowed to say 'I think' or 'because'—use richer connectors!",
+      "ROLE REVERSAL: Everyone must now argue the exact OPPOSITE stance from what they opened with!",
+      "BUDGET / TIME CUT: Your available time and resources just got cut by 50%—simplify your proposal right now!",
+      "QUESTION MANDATE: Every single turn from this point forward MUST end with a direct question to another student.",
+      "VOCAB MULTIPLIER: Double points if you naturally weave in at least TWO vocabulary words from your card before the buzzer!",
+      "BREAKING NEWS UPDATE: An eyewitness/client just leaked new evidence that contradicts the first speaker's assumption!",
+      "CONSENSUS CLOCK: You have until 00:00 to reach a 100% unanimous group agreement—no abstaining!"
+    ];
+
+    // =========================================================================
+    // 3. CLASS LOOKUP & STORAGE SYNC
+    // =========================================================================
+    function lookupClass(book, classNum) {
+      if (book === 1) {
+        if (classNum < 1 || classNum > 84) return null;
+        const unit = Math.ceil(classNum / 7);
+        const pos = ((classNum - 1) % 7) + 1;
+        const u = P1_UNITS[unit];
+        const isB = pos >= 4 && pos <= 6;
+        const custom = state.customBank[`1:${classNum}`] || {};
+        const hook = UNIT_HOOKS[`1:${unit}`];
+        return {
+          book: 1,
+          classNum,
+          unit,
+          unitTitle: u.title,
+          lessonCode: pos === 7 ? `U${unit} Video` : isB ? `U${unit}B` : `U${unit}A`,
+          grammar: custom.grammarTitle || (isB ? u.gB : u.gA),
+          vocab: (custom.vocab && custom.vocab.length) ? custom.vocab : u.v,
+          hook
+        };
+      } else {
+        if (classNum < 1 || classNum > 72) return null;
+        const unit = Math.ceil(classNum / 6);
+        const pos = ((classNum - 1) % 6) + 1;
+        const u = P2_UNITS[unit];
+        const isB = pos >= 4;
+        const custom = state.customBank[`2:${classNum}`] || {};
+        const hook = UNIT_HOOKS[`2:${unit}`];
+        return {
+          book: 2,
+          classNum,
+          unit,
+          unitTitle: u.title,
+          lessonCode: isB ? `U${unit}B` : `U${unit}A`,
+          grammar: custom.grammarTitle || (isB ? u.gB : u.gA),
+          vocab: (custom.vocab && custom.vocab.length) ? custom.vocab : u.v,
+          hook
+        };
+      }
+    }
+
+    function getActiveStudents() {
+      const list = [];
+      state.slots.forEach((clsNum, idx) => {
+        if (clsNum !== null) {
+          const info = lookupClass(state.book, clsNum);
+          if (info) {
+            list.push({
+              slotIdx: idx,
+              studentLabel: `Student ${idx + 1}`,
+              ...info
+            });
+          }
+        }
+      });
+      return list;
+    }
+
+    // =========================================================================
+    // 4. CONTROLS & INTERACTIVITY
+    // =========================================================================
+    function showToast(msg, icon = "ℹ️") {
+      const el = document.getElementById("toastBanner");
+      document.getElementById("toastIcon").textContent = icon;
+      document.getElementById("toastMessage").textContent = msg;
+      el.classList.remove("hidden");
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.add("hidden"), 3200);
+    }
+
+    function setBook(bookNum) {
+      state.book = bookNum;
+      const max = bookNum === 1 ? 84 : 72;
+      document.getElementById("btnBook1").className = bookNum === 1
+        ? "px-4 py-2 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white shadow-xs cursor-pointer"
+        : "px-4 py-2 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-white cursor-pointer";
+      document.getElementById("btnBook2").className = bookNum === 2
+        ? "px-4 py-2 rounded-lg text-sm font-bold transition-all bg-indigo-600 text-white shadow-xs cursor-pointer"
+        : "px-4 py-2 rounded-lg text-sm font-bold transition-all text-zinc-400 hover:text-white cursor-pointer";
+      document.getElementById("maxRangeHint").textContent = `Valid range: 1 – ${max}`;
+      state.slots = state.slots.map(v => (v !== null && v > max ? max : v));
+      syncQuickInput();
+      renderAll();
+    }
+
+    function syncQuickInput() {
+      document.getElementById("quickClassInput").value = state.slots.filter(v => v !== null).join(", ");
+    }
+
+    function applyQuickInput() {
+      const max = state.book === 1 ? 84 : 72;
+      const nums = document.getElementById("quickClassInput").value
+        .split(/[\s,;]+/)
+        .map(t => parseInt(t.trim(), 10))
+        .filter(n => !isNaN(n) && n >= 1 && n <= max);
+      const next = [null, null, null, null, null, null];
+      nums.slice(0, 6).forEach((n, i) => (next[i] = n));
+      state.slots = next;
+      state.spotlightStudentIdx = null;
+      syncQuickInput();
+      renderAll();
+    }
+
+    function updateSlot(idx, val) {
+      const max = state.book === 1 ? 84 : 72;
+      const n = parseInt(val, 10);
+      state.slots[idx] = !isNaN(n) && n >= 1 ? Math.min(n, max) : null;
+      syncQuickInput();
+      renderAll();
+    }
+
+    function loadDemo(bookNum) {
+      setBook(bookNum);
+      state.slots = bookNum === 1 ? [2, 19, 33, 54, 72, null] : [5, 20, 35, 53, 68, null];
+      state.spotlightStudentIdx = null;
+      syncQuickInput();
+      renderAll();
+      showToast(`Loaded Passages ${bookNum} speaking mix!`, "✅");
+    }
+
+    function clearAllSlots() {
+      state.slots = [null, null, null, null, null, null];
+      state.spotlightStudentIdx = null;
+      syncQuickInput();
+      renderAll();
+    }
+
+    function setCategoryFilter(cat) {
+      state.categoryFilter = cat;
+      document.querySelectorAll(".cat-btn").forEach(btn => {
+        btn.className = btn.dataset.cat === cat
+          ? "cat-btn px-3 py-1 rounded-lg text-xs font-bold bg-indigo-600 text-white cursor-pointer"
+          : "cat-btn px-3 py-1 rounded-lg text-xs font-bold bg-zinc-900 text-zinc-300 border border-zinc-800 hover:bg-zinc-800 cursor-pointer";
+      });
+      populateFormatDropdown(true);
+      renderStage();
+    }
+
+    function populateFormatDropdown(autoSelectFirst = false) {
+      const sel = document.getElementById("formatSelect");
+      const filtered = state.categoryFilter === "all"
+        ? SPEAKING_FORMATS
+        : SPEAKING_FORMATS.filter(f => f.category === state.categoryFilter);
+
+      sel.innerHTML = filtered.map(f => `<option value="${f.id}">${f.name} — ${f.tagline}</option>`).join("");
+
+      if (autoSelectFirst || !filtered.some(f => f.id === state.formatId)) {
+        state.formatId = filtered[0].id;
+      }
+      sel.value = state.formatId;
+    }
+
+    function selectFormatById(id) {
+      state.formatId = id;
+      state.completedChecks = {};
+      renderStage();
+    }
+
+    function randomizeAll() {
+      const pool = state.categoryFilter === "all"
+        ? SPEAKING_FORMATS
+        : SPEAKING_FORMATS.filter(f => f.category === state.categoryFilter);
+      const others = pool.filter(f => f.id !== state.formatId);
+      const pick = (others.length ? others : pool)[Math.floor(Math.random() * (others.length || pool.length))];
+      state.formatId = pick.id;
+      state.scenarioSeed++;
+      state.twistSeed++;
+      state.twistRevealed = false;
+      state.completedChecks = {};
+      document.getElementById("formatSelect").value = pick.id;
+      updateTwistUI();
+      renderStage();
+      showToast(`Switched to ${pick.name}!`, "🎲");
+    }
+
+    function rerollScenarioOnly() {
+      state.scenarioSeed++;
+      state.completedChecks = {};
+      renderStage();
+      showToast("Generated a fresh class topic angle!", "🔄");
+    }
+
+    function toggleMidRoundTwist() {
+      state.twistRevealed = !state.twistRevealed;
+      updateTwistUI();
+    }
+
+    function rerollTwist() {
+      state.twistSeed++;
+      state.twistRevealed = true;
+      updateTwistUI();
+      showToast("New mid-round twist unlocked!", "⚡");
+    }
+
+    function updateTwistUI() {
+      const banner = document.getElementById("twistBanner");
+      const label = document.getElementById("twistBtnLabel");
+      const text = document.getElementById("twistText");
+      if (state.twistRevealed) {
+        text.textContent = MID_ROUND_TWISTS[state.twistSeed % MID_ROUND_TWISTS.length];
+        banner.classList.remove("hidden");
+        label.textContent = "Hide Twist";
+      } else {
+        banner.classList.add("hidden");
+        label.textContent = "Reveal Mid-Round Twist";
+      }
+    }
+
+    function spinNextSpeaker(mode) {
+      const active = getActiveStudents();
+      if (!active.length) return;
+      if (mode === "random") {
+        const candidates = active.filter(s => s.slotIdx !== state.spotlightStudentIdx);
+        const chosen = (candidates.length ? candidates : active)[Math.floor(Math.random() * (candidates.length || active.length))];
+        state.spotlightStudentIdx = chosen.slotIdx;
+        showToast(`Spotlight on ${chosen.studentLabel} (Class ${chosen.classNum})!`, "🎯");
+      } else {
+        const curPos = active.findIndex(s => s.slotIdx === state.spotlightStudentIdx);
+        const nextPos = (curPos + 1) % active.length;
+        state.spotlightStudentIdx = active[nextPos].slotIdx;
+      }
+      renderStage();
+    }
+
+    function clearSpotlight() {
+      state.spotlightStudentIdx = null;
+      renderStage();
+    }
+
+    function toggleCheck(key) {
+      state.completedChecks[key] = !state.completedChecks[key];
+      renderStage();
+    }
+
+    function toggleStageMode() {
+      state.stageMode = !state.stageMode;
+      document.getElementById("setupPanel").classList.toggle("hidden", state.stageMode);
+      document.body.classList.toggle("stage-mode", state.stageMode);
+      document.getElementById("stageModeLabel").textContent = state.stageMode ? "Exit Stage View" : "Screen-Share Stage";
+    }
+
+    function importResourceBank(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && typeof parsed === "object") {
+            state.customBank = { ...state.customBank, ...parsed };
+            renderStage();
+            showToast("Synced custom topics & vocab from Resource Bank!", "✅");
+          }
+        } catch {
+          showToast("Invalid JSON file.", "⚠️");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // =========================================================================
+    // 5. RENDERING
+    // =========================================================================
+    function renderSlots() {
+      const max = state.book === 1 ? 84 : 72;
+      document.getElementById("studentSlotsGrid").innerHTML = state.slots.map((v, i) => `
+        <div class="rounded-xl border ${v !== null ? "border-emerald-500/50 bg-emerald-500/10" : "border-zinc-800 bg-zinc-900/60"} p-2">
+          <label class="block text-[10px] font-bold uppercase tracking-wider ${v !== null ? "text-emerald-300" : "text-zinc-500"} mb-1">Student ${i + 1}</label>
+          <input type="number" min="1" max="${max}" value="${v !== null ? v : ""}" placeholder="—"
+            onchange="updateSlot(${i}, this.value)"
+            class="w-full rounded-lg border border-zinc-800 bg-zinc-950 text-white font-mono text-sm font-bold text-center py-1 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        </div>
+      `).join("");
+    }
+
+    function renderStage() {
+      const active = getActiveStudents();
+      const empty = document.getElementById("emptyState");
+      const workspace = document.getElementById("mixerWorkspace");
+
+      if (!active.length) {
+        empty.classList.remove("hidden");
+        workspace.classList.add("hidden");
+        return;
+      }
+      empty.classList.add("hidden");
+      workspace.classList.remove("hidden");
+
+      const format = SPEAKING_FORMATS.find(f => f.id === state.formatId) || SPEAKING_FORMATS[0];
+      const primary = active[state.scenarioSeed % active.length];
+      const secondary = active[(state.scenarioSeed + 1) % active.length];
+
+      const topicBlend = primary.unit === secondary.unit
+        ? primary.hook.topic
+        : `${primary.hook.topic} combined with ${secondary.hook.topic}`;
+      const conflictBlend = primary.hook.conflict;
+
+      const resolvedSetup = format.setup
+        .replace("{topic}", topicBlend)
+        .replace("{conflict}", conflictBlend)
+        .replace("{item}", primary.hook.item);
+
+      const container = document.getElementById("activityStageContainer");
+      container.innerHTML = `
+        <!-- Shared Scenario & Rules Card -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div class="lg:col-span-8 bg-black/60 border border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="px-2.5 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-extrabold">
+                ${format.badge} · Passages ${state.book}
+              </span>
+              <span class="text-xs font-mono text-zinc-400">
+                Active Classes: ${active.map(s => `C${s.classNum}`).join(" · ")}
+              </span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">${format.name}</h2>
+            <p class="text-sm sm:text-base text-zinc-200 leading-relaxed">${resolvedSetup}</p>
+          </div>
+
+          <div class="lg:col-span-4 bg-indigo-950/45 border border-indigo-500/30 rounded-2xl p-5 space-y-2.5 flex flex-col justify-center">
+            <div class="text-xs font-extrabold uppercase tracking-wider text-emerald-300">Round Rules</div>
+            <ul class="space-y-2 text-xs sm:text-sm text-indigo-100">
+              ${format.rules.map(r => `<li class="flex items-start gap-2"><span class="text-emerald-400 font-bold">•</span><span>${r}</span></li>`).join("")}
+            </ul>
+          </div>
+        </div>
+
+        <!-- Per-Student Dynamic Role Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          ${active.map((st, idx) => {
+            const total = active.length;
+            const next = total > 1 ? active[(idx + 1) % total].studentLabel : "the teacher";
+            const prev = total > 1 ? active[(idx - 1 + total) % total].studentLabel : "the teacher";
+            const enrichedSt = { ...st, item: st.hook.item };
+            const roleInstruction = format.roleBuilder(idx, total, enrichedSt, next, prev);
+            const isSpotlight = state.spotlightStudentIdx === st.slotIdx;
+            const gramKey = `${st.slotIdx}:gram`;
+            const gramDone = Boolean(state.completedChecks[gramKey]);
+
+            return `
+              <div onclick="state.spotlightStudentIdx = ${st.slotIdx}; renderStage();"
+                class="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 flex flex-col justify-between gap-4 transition-all cursor-pointer ${isSpotlight ? "spotlight-card" : "hover:border-zinc-700"}">
+                <div class="space-y-3">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold ${isSpotlight ? "bg-emerald-400 text-zinc-950" : "bg-indigo-600 text-white"}">
+                      ${isSpotlight ? "🎙️ SPEAKING NOW · " : ""}${st.studentLabel}
+                    </span>
+                    <span class="font-mono text-xs font-bold text-zinc-400">
+                      Class ${st.classNum} (${st.lessonCode})
+                    </span>
+                  </div>
+
+                  <p class="role-text text-sm text-zinc-100 leading-relaxed">${roleInstruction}</p>
+                </div>
+
+                <div class="pt-3 border-t border-zinc-800/90 space-y-2.5" onclick="event.stopPropagation()">
+                  <!-- Clickable Grammar Check-Off -->
+                  <button onclick="toggleCheck('${gramKey}')"
+                    class="w-full text-left px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center justify-between gap-2 cursor-pointer ${gramDone ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 line-through opacity-80" : "bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25"}">
+                    <span>Target: ${st.grammar}</span>
+                    <span>${gramDone ? "✅" : "⬜"}</span>
+                  </button>
+
+                  <!-- Clickable Vocab Pills -->
+                  <div class="flex flex-wrap gap-1.5">
+                    ${st.vocab.slice(0, 4).map((word, wIdx) => {
+                      const vKey = `${st.slotIdx}:v${wIdx}`;
+                      const vDone = Boolean(state.completedChecks[vKey]);
+                      return `
+                        <button onclick="toggleCheck('${vKey}')"
+                          class="px-2 py-0.5 rounded-md text-[11px] font-medium border transition cursor-pointer ${vDone ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 line-through" : "bg-zinc-900 text-zinc-300 border-zinc-800 hover:border-zinc-600"}">
+                          ${word}
+                        </button>
+                      `;
+                    }).join("")}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 6. TIMER & TONE.JS AUDIO
+    // =========================================================================
+    function playChime(notes = ["C5", "E5", "G5"]) {
+      try {
+        if (typeof Tone !== "undefined") {
+          Tone.start();
+          const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+          synth.volume.value = -8;
+          synth.triggerAttackRelease(notes, "8n");
+        }
+      } catch {}
+    }
+
+    function setDuration(sec) {
+      clearInterval(state.timerInterval);
+      state.timerRunning = false;
+      state.durationSeconds = sec;
+      state.timerSeconds = sec;
+      document.querySelectorAll(".dur-btn").forEach(b => {
+        b.className = Number(b.dataset.sec) === sec
+          ? "dur-btn px-2 py-0.5 rounded bg-indigo-600 text-white font-bold cursor-pointer"
+          : "dur-btn px-2 py-0.5 rounded bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 cursor-pointer";
+      });
+      updateTimerUI();
+    }
+
+    function updateTimerUI() {
+      const m = Math.floor(state.timerSeconds / 60).toString().padStart(2, "0");
+      const s = (state.timerSeconds % 60).toString().padStart(2, "0");
+      document.getElementById("timerDisplay").textContent = `${m}:${s}`;
+      const pct = Math.max(0, Math.min(100, (state.timerSeconds / state.durationSeconds) * 100));
+      const bar = document.getElementById("timerProgressBar");
+      const status = document.getElementById("timerStatus");
+      const btn = document.getElementById("timerStartBtn");
+
+      bar.style.width = `${pct}%`;
+      if (state.timerSeconds === 0) {
+        status.textContent = "Time's Up!";
+        status.className = "text-[11px] uppercase tracking-wider text-rose-400 font-extrabold";
+        bar.className = "h-full bg-rose-500 transition-all duration-500 rounded-full";
+        btn.textContent = "▶ Start";
+      } else if (state.timerSeconds <= 60) {
+        status.textContent = state.timerRunning ? "Final Minute!" : "Paused";
+        status.className = "text-[11px] uppercase tracking-wider text-amber-300 font-bold";
+        bar.className = "h-full bg-amber-400 transition-all duration-500 rounded-full";
+        btn.textContent = state.timerRunning ? "⏸ Pause" : "▶ Resume";
+      } else {
+        status.textContent = state.timerRunning ? "Live Round" : "Ready";
+        status.className = "text-[11px] uppercase tracking-wider text-emerald-400 font-bold";
+        bar.className = "h-full bg-emerald-400 transition-all duration-500 rounded-full";
+        btn.textContent = state.timerRunning ? "⏸ Pause" : "▶ Start";
+      }
+    }
+
+    function toggleTimer() {
+      if (state.timerRunning) {
+        clearInterval(state.timerInterval);
+        state.timerRunning = false;
+        updateTimerUI();
+      } else {
+        if (state.timerSeconds <= 0) state.timerSeconds = state.durationSeconds;
+        state.timerRunning = true;
+        updateTimerUI();
+        state.timerInterval = setInterval(() => {
+          state.timerSeconds--;
+          const halfPoint = Math.floor(state.durationSeconds / 2);
+          if (state.timerSeconds === halfPoint && !state.twistRevealed) {
+            state.twistRevealed = true;
+            updateTwistUI();
+            playChime(["E5", "G5"]);
+            showToast("Halfway mark! Mid-Round Twist unlocked!", "⚡");
+          }
+          if (state.timerSeconds <= 0) {
+            state.timerSeconds = 0;
+            clearInterval(state.timerInterval);
+            state.timerRunning = false;
+            playChime(["C5", "E5", "G5", "C6"]);
+            showToast("Round complete! Review checked grammar badges.", "🔔");
+          }
+          updateTimerUI();
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(state.timerInterval);
+      state.timerRunning = false;
+      state.timerSeconds = state.durationSeconds;
+      updateTimerUI();
+    }
+
+    function renderAll() {
+      renderSlots();
+      renderStage();
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      populateFormatDropdown(false);
+      syncQuickInput();
+      updateTimerUI();
+      renderAll();
+    });
+  </script>
+</body>
+</html>
