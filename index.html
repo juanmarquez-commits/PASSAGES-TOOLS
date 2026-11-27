@@ -132,6 +132,11 @@
           </svg>
           <span id="projectorLabel" class="hidden md:inline">Screen-Share View</span>
         </button>
+        <button onclick="openSpeakingMixerWithClasses()"
+          class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition cursor-pointer">
+          <span>🎙️</span>
+          <span class="hidden sm:inline">Open Speaking Mixer</span>
+        </button>
       </div>
     </div>
   </header>
@@ -3589,6 +3594,14 @@
       syncQuickInputFromSlots();
       renderAll();
     });
+    function openSpeakingMixerWithClasses() {
+      const activeClasses = state.slots.filter(v => v !== null).join(",");
+      const params = new URLSearchParams({
+        book: String(state.book),
+        classes: activeClasses
+      });
+      window.open(`mixer.html?${params.toString()}`, "_blank");
+    }
   </script>
 </body>
 </html>
