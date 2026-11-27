@@ -1005,7 +1005,31 @@
       renderStage();
     }
 
+    function loadSharedStudioBank() {
+      try {
+        const raw = localStorage.getItem("passages_live_studio_resource_bank_v1");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            state.customBank = { ...state.customBank, ...parsed };
+          }
+        }
+      } catch (e) {
+        console.warn("Could not read shared studio bank:", e);
+      }
+    }
+
+    // Automatically refresh if you edit a class in Passages Live Studio in another tab
+    window.addEventListener("storage", (e) => {
+      if (e.key === "passages_live_studio_resource_bank_v1") {
+        loadSharedStudioBank();
+        renderStage();
+        showToast("Auto-synced updates from Passages Live Studio!", "🔄");
+      }
+    });
+
     window.addEventListener("DOMContentLoaded", () => {
+      loadSharedStudioBank();
       populateFormatDropdown(false);
       syncQuickInput();
       updateTimerUI();
