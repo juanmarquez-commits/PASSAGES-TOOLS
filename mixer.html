@@ -1028,9 +1028,31 @@
       }
     });
 
+    function applyUrlParamsIfPresent() {
+      const params = new URLSearchParams(window.location.search);
+      const bookParam = parseInt(params.get("book"), 10);
+      const classesParam = params.get("classes");
+
+      if (bookParam === 1 || bookParam === 2) {
+        setBook(bookParam);
+      }
+      if (classesParam) {
+        const max = state.book === 1 ? 84 : 72;
+        const nums = classesParam
+          .split(",")
+          .map(n => parseInt(n.trim(), 10))
+          .filter(n => !isNaN(n) && n >= 1 && n <= max);
+        const next = [null, null, null, null, null, null];
+        nums.slice(0, 6).forEach((n, i) => (next[i] = n));
+        state.slots = next;
+        syncQuickInput();
+      }
+    }
+
     window.addEventListener("DOMContentLoaded", () => {
       loadSharedStudioBank();
       populateFormatDropdown(false);
+      applyUrlParamsIfPresent();
       syncQuickInput();
       updateTimerUI();
       renderAll();
